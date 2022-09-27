@@ -1,5 +1,7 @@
 const paths = {
-    parking: "/parking"
+    parking: "/parking",
+    user: "/user",
+    vehicle: "/vehicle",
 }
 
 module.exports = paths
