@@ -34,6 +34,42 @@ route.post("/login", [], async function (req, res, next) {
     }
 })
 
+route.get("/listClientsByPartner", [], async function (req, res, next) {
+    try {
+        const response = await user_dao.list_clients_by_partner()
+        res.status(200).json({ 
+            msg: "Listado de clientes por socio",
+            data: response
+        })
+    } catch (error) {
+        next(error)
+    }
+})
 
+route.get("/checkVehiclesParkingFirstTimeNotByPartner", [], async function (req, res, next) {
+    try {
+        let {idsocio} = req.body
+        const response = await user_dao.check_vehicles_parking_first_time_not_by_parnet(idsocio)
+        res.status(200).json({ 
+            msg: `Listado de vehículos parqueados actualmente en el parqueadero del socio N. ${idsocio}`,
+            data: response
+        })
+    } catch (error) {
+        next(error)
+    }
+})
+
+route.get("/howMuchClientsUsedParking", [], async function (req, res, next) {
+    try {
+        let {idsocio} = req.body
+        const response = await user_dao.how_much_clients_used_parking(idsocio)
+        res.status(200).json({ 
+            msg: `Cantidad clientes han usado y cuales no el parqueadero del socio N. ${idsocio}`,
+            data: response
+        })
+    } catch (error) {
+        next(error)
+    }
+})
 
 module.exports = route

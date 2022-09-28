@@ -21,6 +21,23 @@ const create_vehicle = async (vehicle) => {
     
 }
 
+const get__data_list_vehicles_by_client = async (propietario) => {
+    try {
+        const getDataListOfVehiclesByClient = await pool.query(`SELECT u.idusuario,concat(u.nombre, ' ', u.apellido) as nombre_cliente,u.email,u.idusuario,v.placa,v.modelo 
+                                                FROM vehiculo v 
+                                                INNER JOIN usuario u ON u.idusuario=v.propietario
+                                                WHERE v.propietario = ?`,[propietario])
+        if(!getDataListOfVehiclesByClient.length)
+            throw new Error(`El cliente N. ${propietario} no cuenta con ningun vehiculo`)
+        
+        return getDataListOfVehiclesByClient
+    } catch (error) {
+        if(error.message)
+            throw new Error(error.message)
+    }
+}
+
 module.exports = {
     create_vehicle,
+    get__data_list_vehicles_by_client,
 }

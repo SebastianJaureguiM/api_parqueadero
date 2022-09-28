@@ -61,8 +61,71 @@ const register_vehicle_check_out = async (vehicle_check_out) => {
     }
 }
 
+const vehicle_list_in_parking = async () => {
+    try {
+        const vehiclesInParking = await pool.query("SELECT * FROM vehiculo_parqueadero vp INNER JOIN vehiculo v ON v.idvehiculo=vp.idvehiculo INNER JOIN parqueadero p ON p.idparqueadero=vp.idparqueadero INNER JOIN usuario u ON u.idusuario=v.propietario WHERE vp.fecha_salida IS null")
+        if(!vehiclesInParking.length)
+            throw new Error("No hay ningun vehiculo en los parqueaderos")
+        
+        let data = []
+
+        vehiclesInParking.forEach(element => {
+            let row = {
+                id: element.idvehiculo_parqueadero,
+                placa: element.placa,
+                fechaIngreso: moment(element.fecha_ingreso).format('YYYY-MM-DD HH:mm:ss'),
+                socio: {
+                    idusuario: element.idusuario,
+                    nombre: element.nombre + " " + element.apellido,
+                    email: element.email
+                }
+            }
+            data.push(row) 
+        })
+
+        return data
+    } catch (error) {
+        if(error.message)
+            throw new Error(error.message)
+    }
+}
+
+const most_registered_vehicles = async () => {
+    try {
+        const mostRegistedesVehicles = await pool.query("SELECT v.placa, COUNT(v.placa) AS cantidad_ingresos FROM vehiculo_parqueadero vp INNER JOIN vehiculo v ON v.idvehiculo=vp.idvehiculo GROUP BY v.placa ORDER BY cantidad_ingresos DESC LIMIT 10")
+        if(!mostRegistedesVehicles.length)
+            throw new Error("No se ha registrado ningun vehiculo en los parqueaderos")
+        
+        return mostRegistedesVehicles
+    } catch (error) {
+        if(error.message)
+            throw new Error(error.message)
+    }
+}
+
+const check_vehicles_parking_first_time_not = async () => {
+    try {
+        const checkVehiclesParkingFirstTimeNot = await pool.query(`SELECT v.placa,vp.idvehiculo_parqueadero,
+                                                                    @cantidad_ingresos := (SELECT COUNT(*) FROM vehiculo_parqueadero WHERE idvehiculo=vp.idvehiculo) AS cantidad_ingresos,
+                                                                    CASE WHEN @cantidad_ingresos>1 THEN 0 WHEN @cantidad_ingresos=1 THEN 1 END AS vehiculo_nuevo_parqueadero
+                                                                    FROM vehiculo_parqueadero vp 
+                                                                    INNER JOIN vehiculo v ON v.idvehiculo=vp.idvehiculo 
+                                                                    GROUP BY v.placa`)
+        if(!checkVehiclesParkingFirstTimeNot.length)
+            throw new Error("No se ha registrado ningun vehiculo en los parqueaderos")
+        
+        return checkVehiclesParkingFirstTimeNot
+    } catch (error) {
+        if(error.message)
+            throw new Error(error.message)
+    }
+}
+
 module.exports = {
     create_parking,
     register_vehicle_income,
-    register_vehicle_check_out
+    register_vehicle_check_out,
+    vehicle_list_in_parking,
+    most_registered_vehicles,
+    check_vehicles_parking_first_time_not
 }

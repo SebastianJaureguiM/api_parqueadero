@@ -16,6 +16,18 @@ route.post("/", [], async function (req, res, next) {
     }
 })
 
+route.get("/getDataListOfVehiclesByClient", [], async function (req, res, next) {
+    try {
+        let {propietario} = req.body
+        const response = await vehicle_dao.get__data_list_vehicles_by_client(propietario)
+        res.status(200).json({ 
+            msg: `Listado y detalle de vehículos del cliente N. ${propietario}`,
+            data: response
+        })
+    } catch (error) {
+        next(error)
+    }
+})
 
 
 module.exports = route
