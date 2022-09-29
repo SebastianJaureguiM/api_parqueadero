@@ -109,6 +109,46 @@ const most_registered_vehicles = async () => {
     }
 }
 
+const parking_vehicle_history = async (idparqueadero,placa,fecha_inicial,fecha_final) => {
+    try {
+        let query = `SELECT * FROM vehiculo_parqueadero vp INNER JOIN vehiculo v ON v.idvehiculo=vp.idvehiculo WHERE (vp.fecha_ingreso BETWEEN ? AND ?) `
+        let params = [fecha_inicial,fecha_final]
+        if (idparqueadero) {
+            query += `AND vp.idparqueadero = ? `
+            params.push(idparqueadero)
+        }
+
+        if (placa) {
+            query += `AND v.placa LIKE ?`
+            params.push(`%${placa}%`)
+        }
+
+        const vehicleHistory = await pool.query(query,params)
+
+        if(!vehicleHistory.length)
+            return []
+
+        let data = []
+        vehicleHistory.forEach(element => {
+            let row = {
+                idregistro_parqueadero: element.idvehiculo_parqueadero,
+                placa: element.placa,
+                modelo: element.modelo,
+                propietario: element.propietario,
+                fechaIngreso: moment(element.fecha_ingreso).format('YYYY-MM-DD HH:mm:ss'),
+                idparqueadero: element.idparqueadero,
+                idvehiculo:element.idvehiculo
+            }
+            data.push(row) 
+        });    
+
+        return data
+    } catch (error) {
+        if(error.message)
+            throw new Error(error.message)
+    }
+}
+
 const check_vehicles_parking_first_time_not = async () => {
     try {
         const checkVehiclesParkingFirstTimeNot = await pool.query(`SELECT v.placa,vp.idvehiculo_parqueadero,
@@ -129,19 +169,24 @@ const check_vehicles_parking_first_time_not = async () => {
 
 const usage_parking_by_date_by_parking = async (idparqueadero,fecha_inicial,fecha_final) => {
     try {
-        const usageParkingIncome = await pool.query(`SELECT COUNT(*) AS cantidad_uso_ingreso
-        FROM parqueadero p 
-        INNER JOIN vehiculo_parqueadero vp ON vp.idparqueadero=p.idparqueadero
-        WHERE p.idparqueadero = ? AND vp.fecha_ingreso BETWEEN ? AND ?`,[idparqueadero,fecha_inicial,fecha_final])
-        
-        const usageParkingCheckout = await pool.query(`SELECT COUNT(*) AS cantidad_uso_total
-        FROM parqueadero p 
-        INNER JOIN vehiculo_parqueadero vp ON vp.idparqueadero=p.idparqueadero
-        WHERE p.idparqueadero = ? AND vp.fecha_salida BETWEEN ? AND ?`,[idparqueadero,fecha_inicial,fecha_final])
+        const usageParkingCheckout = await pool.query(`SELECT vp.*
+            FROM parqueadero p 
+            INNER JOIN vehiculo_parqueadero vp ON vp.idparqueadero=p.idparqueadero
+            WHERE p.idparqueadero = ? AND vp.fecha_salida BETWEEN ? AND ?`,[idparqueadero,fecha_inicial,fecha_final])
+
+        let sumatoria = 0  
+        usageParkingCheckout.forEach(element => {
+            const fecha_ingreso = moment(element.fecha_ingreso)
+            const fecha_salida = moment(element.fecha_salida)
+            sumatoria += fecha_salida.diff(fecha_ingreso, 'hours')
+        })
+
+        let promedio = 0
+        if (usageParkingCheckout.length)
+            promedio = sumatoria/usageParkingCheckout.length
         
         return {
-            cantidad_ingreso: usageParkingIncome[0]['cantidad_uso_ingreso'],
-            cantidad_total: usageParkingCheckout[0]['cantidad_uso_total']
+            promedio_uso_horas: promedio
         }
     } catch (error) {
         if(error.message)
@@ -151,17 +196,23 @@ const usage_parking_by_date_by_parking = async (idparqueadero,fecha_inicial,fech
 
 const usage_all_parking_by_date = async (fecha_inicial,fecha_final) => {
     try {
-        const usageParkingIncome = await pool.query(`SELECT COUNT(*) AS cantidad_uso_ingreso
-        FROM vehiculo_parqueadero vp
-        WHERE vp.fecha_ingreso BETWEEN ? AND ?`,[fecha_inicial,fecha_final])
+        const usageParkingCheckout = await pool.query(`SELECT *
+            FROM vehiculo_parqueadero vp
+            WHERE vp.fecha_salida BETWEEN ? AND ?`,[fecha_inicial,fecha_final])
         
-        const usageParkingCheckout = await pool.query(`SELECT COUNT(*) AS cantidad_uso_total
-        FROM vehiculo_parqueadero vp
-        WHERE vp.fecha_salida BETWEEN ? AND ?`,[fecha_inicial,fecha_final])
-        
+        let sumatoria = 0  
+        usageParkingCheckout.forEach(element => {
+            const fecha_ingreso = moment(element.fecha_ingreso)
+            const fecha_salida = moment(element.fecha_salida)
+            sumatoria += fecha_salida.diff(fecha_ingreso, 'hours')
+        })
+
+        let promedio = 0
+        if (usageParkingCheckout.length)
+            promedio = sumatoria/usageParkingCheckout.length
+
         return {
-            cantidad_ingreso: usageParkingIncome[0]['cantidad_uso_ingreso'],
-            cantidad_total: usageParkingCheckout[0]['cantidad_uso_total']
+            promedio_uso_horas: promedio
         }
     } catch (error) {
         if(error.message)
@@ -171,14 +222,25 @@ const usage_all_parking_by_date = async (fecha_inicial,fecha_final) => {
 
 const time_usage_by_vehicle_parking = async (idparqueadero) => {
     try {
-        
         const timeUsageByVehicleParking = await pool.query(`SELECT vp.*,v.*
-        FROM parqueadero p 
-        INNER JOIN vehiculo_parqueadero vp ON vp.idparqueadero=p.idparqueadero
-        INNER JOIN vehiculo v ON v.idvehiculo=vp.idvehiculo
-        WHERE p.idparqueadero = ? AND vp.fecha_salida IS NOT NULL`,[idparqueadero])
-        
-       return true
+                FROM parqueadero p 
+                INNER JOIN vehiculo_parqueadero vp ON vp.idparqueadero=p.idparqueadero
+                INNER JOIN vehiculo v ON v.idvehiculo=vp.idvehiculo
+                WHERE p.idparqueadero = ? AND vp.fecha_salida IS NOT NULL`,[idparqueadero])
+        let sumatoria = 0        
+        timeUsageByVehicleParking.forEach(element => {
+            const fecha_ingreso = moment(element.fecha_ingreso)
+            const fecha_salida = moment(element.fecha_salida)
+            sumatoria += fecha_salida.diff(fecha_ingreso, 'hours')
+        })
+
+        let promedio = 0
+        if (timeUsageByVehicleParking.length)
+            promedio = sumatoria/timeUsageByVehicleParking.length
+
+        return {
+            promedio_uso_horas: promedio
+        }
     } catch (error) {
         if(error.message)
             throw new Error(error.message)
@@ -194,5 +256,6 @@ module.exports = {
     check_vehicles_parking_first_time_not,
     usage_parking_by_date_by_parking,
     usage_all_parking_by_date,
-    time_usage_by_vehicle_parking
+    time_usage_by_vehicle_parking,
+    parking_vehicle_history
 }

@@ -64,6 +64,19 @@ route.get("/mostRegisteredVehicles", [], async function (req, res, next) {
     }
 })
 
+route.get("/parkingVehicleHistory", [], async function (req, res, next) {
+    try {
+        const {idparqueadero,placa,fecha_inicial,fecha_final} = req.body
+        const response = await parking_dao.parking_vehicle_history(idparqueadero,placa,fecha_inicial,fecha_final)
+        res.status(200).json({ 
+            msg: "Historial de vehiculos",
+            data: response
+        })
+    } catch (error) {
+        next(error)
+    }
+})
+
 route.get("/checkVehiclesAllParkingFirstTimeNot", [], async function (req, res, next) {
     try {
         const response = await parking_dao.check_vehicles_parking_first_time_not()
@@ -81,7 +94,7 @@ route.get("/usageParkingByDateByParking", [], async function (req, res, next) {
         const {idparqueadero,fecha_inicial,fecha_final} = req.body
         const response = await parking_dao.usage_parking_by_date_by_parking(idparqueadero,fecha_inicial,fecha_final)
         res.status(200).json({ 
-            msg: "Promedio de uso de un parqueadero por rango de fecha",
+            msg: `Promedio de tiempo de uso del parqueadero ${idparqueadero} entre las fechas ${fecha_inicial} y ${fecha_final}`,
             data: response
         })
     } catch (error) {
@@ -94,7 +107,7 @@ route.get("/usageAllParkingByDate", [], async function (req, res, next) {
         const {fecha_inicial,fecha_final} = req.body
         const response = await parking_dao.usage_all_parking_by_date(fecha_inicial,fecha_final)
         res.status(200).json({ 
-            msg: "Promedio de uso de todos los parqueaderos por un rango de fecha",
+            msg: `Promedio de tiempo de uso de todos los parqueaderos entre las fechas ${fecha_inicial} y ${fecha_final}`,
             data: response
         })
     } catch (error) {
@@ -107,7 +120,7 @@ route.get("/timeUsageByVehicleParking", [], async function (req, res, next) {
         const {idparqueadero} = req.body
         const response = await parking_dao.time_usage_by_vehicle_parking(idparqueadero)
         res.status(200).json({ 
-            msg: "Promedio de tiempo que están los vehículos en un parqueadero",
+            msg: `Promedio de tiempo que están los vehículos en el parqueadero ${idparqueadero}`,
             data: response
         })
     } catch (error) {

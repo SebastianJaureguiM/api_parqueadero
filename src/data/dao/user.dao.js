@@ -1,4 +1,5 @@
 const pool = require("../connection")
+const user_service = require("../../services/user_service")
 
 const create_user = async (user) => {
     try {
@@ -16,7 +17,7 @@ const create_user = async (user) => {
 
 const login_user = async (email,clave) => {
     try { 
-        const user = await pool.query("SELECT clave FROM usuario WHERE email=? AND estado=?", [email,1])
+        const user = await pool.query("SELECT clave,idrol FROM usuario WHERE email=? AND estado=?", [email,1])
         if (!user.length) {
             throw new Error("El usuario no existe o esta desactivado")
         }
@@ -25,7 +26,8 @@ const login_user = async (email,clave) => {
             throw new Error("Credenciales incorrectas")
         }
         
-        return true;
+        const token = await user_service.login_user(user[0]['idrol'])
+        return token;
     } catch (error) {
         if (error.message) 
             throw new Error(error.message)

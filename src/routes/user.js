@@ -24,9 +24,10 @@ route.post("/login", [], async function (req, res, next) {
             throw new Error("Debe indicar el usuario y la contraseña")
         }
 
-        await user_dao.login_user(user.email,user.clave)
+        const token = await user_dao.login_user(user.email,user.clave)
         res.status(200).json({ 
-            msg: "Usuario inicio sesion"
+            msg: "Usuario inicio sesion",
+            token
         })
  
     } catch (error) {
