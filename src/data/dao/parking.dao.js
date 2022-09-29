@@ -21,9 +21,15 @@ const register_vehicle_income = async (vehicle_income) => {
 
         const vehicleData = await pool.query("SELECT idvehiculo,propietario FROM vehiculo WHERE placa LIKE ?", [vehicle_income.placa])
 
-        const vehicleInParking = await pool.query("SELECT * FROM vehiculo_parqueadero WHERE idvehiculo = ? AND fecha_salida IS NULL", [vehicleData[0]['idvehiculo']])
+        const vehicleInParking = await pool.query(`SELECT * 
+        FROM vehiculo_parqueadero vp 
+        INNER JOIN parqueadero p ON p.idparqueadero=vp.idparqueadero
+        WHERE vp.idvehiculo = ? AND vp.fecha_salida IS NULL`, [vehicleData[0]['idvehiculo']])
         if(vehicleInParking.length)
             throw new Error("No se puede Registrar Ingreso, ya existe la placa")
+
+        if(vehicleInParking.length >= vehicleInParking[0]['cantidad_maxima'])
+            throw new Error("No se puede Registrar Ingreso, cantidad maxima parqueadero alcanzada")
 
         const vehicule = {
             "idparqueadero":vehicle_income.idparqueadero,
@@ -121,11 +127,72 @@ const check_vehicles_parking_first_time_not = async () => {
     }
 }
 
+const usage_parking_by_date_by_parking = async (idparqueadero,fecha_inicial,fecha_final) => {
+    try {
+        const usageParkingIncome = await pool.query(`SELECT COUNT(*) AS cantidad_uso_ingreso
+        FROM parqueadero p 
+        INNER JOIN vehiculo_parqueadero vp ON vp.idparqueadero=p.idparqueadero
+        WHERE p.idparqueadero = ? AND vp.fecha_ingreso BETWEEN ? AND ?`,[idparqueadero,fecha_inicial,fecha_final])
+        
+        const usageParkingCheckout = await pool.query(`SELECT COUNT(*) AS cantidad_uso_total
+        FROM parqueadero p 
+        INNER JOIN vehiculo_parqueadero vp ON vp.idparqueadero=p.idparqueadero
+        WHERE p.idparqueadero = ? AND vp.fecha_salida BETWEEN ? AND ?`,[idparqueadero,fecha_inicial,fecha_final])
+        
+        return {
+            cantidad_ingreso: usageParkingIncome[0]['cantidad_uso_ingreso'],
+            cantidad_total: usageParkingCheckout[0]['cantidad_uso_total']
+        }
+    } catch (error) {
+        if(error.message)
+            throw new Error(error.message)
+    }
+}
+
+const usage_all_parking_by_date = async (fecha_inicial,fecha_final) => {
+    try {
+        const usageParkingIncome = await pool.query(`SELECT COUNT(*) AS cantidad_uso_ingreso
+        FROM vehiculo_parqueadero vp
+        WHERE vp.fecha_ingreso BETWEEN ? AND ?`,[fecha_inicial,fecha_final])
+        
+        const usageParkingCheckout = await pool.query(`SELECT COUNT(*) AS cantidad_uso_total
+        FROM vehiculo_parqueadero vp
+        WHERE vp.fecha_salida BETWEEN ? AND ?`,[fecha_inicial,fecha_final])
+        
+        return {
+            cantidad_ingreso: usageParkingIncome[0]['cantidad_uso_ingreso'],
+            cantidad_total: usageParkingCheckout[0]['cantidad_uso_total']
+        }
+    } catch (error) {
+        if(error.message)
+            throw new Error(error.message)
+    }
+}
+
+const time_usage_by_vehicle_parking = async (idparqueadero) => {
+    try {
+        
+        const timeUsageByVehicleParking = await pool.query(`SELECT vp.*,v.*
+        FROM parqueadero p 
+        INNER JOIN vehiculo_parqueadero vp ON vp.idparqueadero=p.idparqueadero
+        INNER JOIN vehiculo v ON v.idvehiculo=vp.idvehiculo
+        WHERE p.idparqueadero = ? AND vp.fecha_salida IS NOT NULL`,[idparqueadero])
+        
+       return true
+    } catch (error) {
+        if(error.message)
+            throw new Error(error.message)
+    }
+}
+
 module.exports = {
     create_parking,
     register_vehicle_income,
     register_vehicle_check_out,
     vehicle_list_in_parking,
     most_registered_vehicles,
-    check_vehicles_parking_first_time_not
+    check_vehicles_parking_first_time_not,
+    usage_parking_by_date_by_parking,
+    usage_all_parking_by_date,
+    time_usage_by_vehicle_parking
 }

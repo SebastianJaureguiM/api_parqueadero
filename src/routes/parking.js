@@ -76,5 +76,43 @@ route.get("/checkVehiclesAllParkingFirstTimeNot", [], async function (req, res, 
     }
 })
 
+route.get("/usageParkingByDateByParking", [], async function (req, res, next) {
+    try {
+        const {idparqueadero,fecha_inicial,fecha_final} = req.body
+        const response = await parking_dao.usage_parking_by_date_by_parking(idparqueadero,fecha_inicial,fecha_final)
+        res.status(200).json({ 
+            msg: "Promedio de uso de un parqueadero por rango de fecha",
+            data: response
+        })
+    } catch (error) {
+        next(error)
+    }
+})
+
+route.get("/usageAllParkingByDate", [], async function (req, res, next) {
+    try {
+        const {fecha_inicial,fecha_final} = req.body
+        const response = await parking_dao.usage_all_parking_by_date(fecha_inicial,fecha_final)
+        res.status(200).json({ 
+            msg: "Promedio de uso de todos los parqueaderos por un rango de fecha",
+            data: response
+        })
+    } catch (error) {
+        next(error)
+    }
+})
+
+route.get("/timeUsageByVehicleParking", [], async function (req, res, next) {
+    try {
+        const {idparqueadero} = req.body
+        const response = await parking_dao.time_usage_by_vehicle_parking(idparqueadero)
+        res.status(200).json({ 
+            msg: "Promedio de tiempo que están los vehículos en un parqueadero",
+            data: response
+        })
+    } catch (error) {
+        next(error)
+    }
+})
 
 module.exports = route
