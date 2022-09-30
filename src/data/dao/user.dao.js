@@ -1,11 +1,35 @@
 const pool = require("../connection")
 const user_service = require("../../services/user_service")
 
-const create_user = async (user) => {
+const create_user_partner = async (user) => {
     try {
         if (JSON.stringify(user) === '{}') {
             throw new Error("Datos vacios")
-        }    
+        } 
+        
+        if (user_service.PARKING_ROLES.partner_role != user.idrol) {
+            throw new Error("El usuario a crear no es rol SOCIO")
+        }
+        
+        return await pool.query("INSERT INTO usuario SET ?", user)
+    } catch (error) {
+        if (error.errno == 1062 || error.code == 'ER_DUP_ENTRY') 
+            throw new Error(error.sqlMessage)
+        else
+            throw new Error(error.message)
+    }
+}
+
+const create_user_client = async (user) => {
+    try {
+        if (JSON.stringify(user) === '{}') {
+            throw new Error("Datos vacios")
+        } 
+
+        if (user_service.PARKING_ROLES.client_role != user.idrol) {
+            throw new Error("El usuario a crear no es rol CLIENTE")
+        }
+
         return await pool.query("INSERT INTO usuario SET ?", user)
     } catch (error) {
         if (error.errno == 1062 || error.code == 'ER_DUP_ENTRY') 
@@ -32,6 +56,62 @@ const login_user = async (email,clave) => {
         if (error.message) 
             throw new Error(error.message)
     }   
+}
+
+const associate_client_to_partner = async (data) => {
+    try {
+        if (JSON.stringify(data) === '{}') {
+            throw new Error("Datos vacios")
+        } 
+
+        const userClient = await pool.query("SELECT * FROM usuario WHERE idusuario=? AND estado=1 AND idrol=?", [data.idusuariocliente,user_service.PARKING_ROLES.client_role])
+        if (!userClient.length) 
+            throw new Error("El usuario CLIENTE no existe")
+        
+        const userPartner = await pool.query(`SELECT * 
+            FROM parqueadero_socio ps
+            INNER JOIN usuario u ON u.idusuario=ps.idusuariosocio 
+            WHERE ps.idparqueadero_socio=? AND ps.estado=1 AND u.idrol=?`, [data.idparqueadero_socio,user_service.PARKING_ROLES.partner_role])
+        if (!userPartner.length) 
+            throw new Error("El usuario SOCIO no existe")
+
+        return await pool.query("INSERT INTO cliente_socio_parqueadero SET ?", data)
+    } catch (error) {
+        if (error.errno == 1062 || error.code == 'ER_DUP_ENTRY') 
+            throw new Error(error.sqlMessage)
+        else
+            throw new Error(error.message)
+    }
+}
+
+const associate_client_to_partner_himself = async (data,idusuariosocio) => {
+    try {
+        if (JSON.stringify(data) === '{}') {
+            throw new Error("Datos vacios")
+        } 
+
+        const userClient = await pool.query("SELECT * FROM usuario WHERE idusuario=? AND estado=1 AND idrol=?", [data.idusuariocliente,user_service.PARKING_ROLES.client_role])
+        if (!userClient.length) 
+            throw new Error("El usuario CLIENTE no existe")
+        
+        const userPartner = await pool.query(`SELECT * 
+            FROM parqueadero_socio ps
+            INNER JOIN usuario u ON u.idusuario=ps.idusuariosocio 
+            WHERE ps.idparqueadero_socio=? AND ps.estado=1 AND u.idrol=?`, [data.idparqueadero_socio,user_service.PARKING_ROLES.partner_role])
+        if (!userPartner.length) 
+            throw new Error("El usuario SOCIO no existe")
+
+        if (userPartner[0]['idusuariosocio'] != idusuariosocio) {
+            throw new Error("El SOCIO al que intenga asignarle el CLIENTE es otro SOCIO, no usted")
+        }
+
+        return await pool.query("INSERT INTO cliente_socio_parqueadero SET ?", data)
+    } catch (error) {
+        if (error.errno == 1062 || error.code == 'ER_DUP_ENTRY') 
+            throw new Error(error.sqlMessage)
+        else
+            throw new Error(error.message)
+    }
 }
 
 const list_clients_by_partner = async () => {
@@ -112,9 +192,12 @@ const how_much_clients_used_parking = async (idsocio) => {
 }
 
 module.exports = {
-    create_user,
+    create_user_partner,
+    create_user_client,
     login_user,
     list_clients_by_partner,
     check_vehicles_parking_first_time_not_by_parnet,
-    how_much_clients_used_parking
+    how_much_clients_used_parking,
+    associate_client_to_partner,
+    associate_client_to_partner_himself
 }

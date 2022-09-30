@@ -9,14 +9,14 @@ const error_auth = {
 const is_admin = (req, res, next) => {
     const header_auth = req.headers.authorization
     if (!header_auth) 
-        return error_auth
+        next(error_auth) 
     
     const header_split = header_auth.split(' ')
     const token = header_split[1]
 
     const is_valid_user = user_service.is_valid_admin(token)
     if (!is_valid_user) 
-        return error_auth
+        next(error_auth) 
     
     next()
 }
@@ -24,14 +24,29 @@ const is_admin = (req, res, next) => {
 const is_partner = (req, res, next) => {
     const header_auth = req.headers.authorization
     if (!header_auth) 
-        return error_auth
+        next(error_auth) 
     
     const header_split = header_auth.split(' ')
     const token = header_split[1]
 
     const is_valid_user = user_service.is_valid_partner(token)
     if (!is_valid_user) 
-        return error_auth
+        next(error_auth) 
+    
+    next()
+}
+
+const is_valid_admin_or_partner = (req, res, next) => {
+    const header_auth = req.headers.authorization
+    if (!header_auth) 
+        next(error_auth) 
+    
+    const header_split = header_auth.split(' ')
+    const token = header_split[1]
+
+    const is_valid_user = user_service.is_valid_admin_or_partner(token)
+    if (!is_valid_user) 
+        next(error_auth) 
     
     next()
 }
@@ -39,14 +54,29 @@ const is_partner = (req, res, next) => {
 const is_client = (req, res, next) => {
     const header_auth = req.headers.authorization
     if (!header_auth) 
-        return error_auth
+        next(error_auth) 
     
     const header_split = header_auth.split(' ')
     const token = header_split[1]
 
     const is_valid_user = user_service.is_valid_client(token)
     if (!is_valid_user) 
-        return error_auth
+        next(error_auth) 
+    
+    next()
+}
+
+const is_valid_user = (req, res, next) => {
+    const header_auth = req.headers.authorization
+    if (!header_auth) 
+        next(error_auth) 
+    
+    const header_split = header_auth.split(' ')
+    const token = header_split[1]
+
+    const is_valid_user = user_service.is_valid_user(token)
+    if (!is_valid_user) 
+        next(error_auth) 
     
     next()
 }
@@ -54,5 +84,7 @@ const is_client = (req, res, next) => {
 module.exports = {
     is_admin,
     is_partner,
-    is_client
+    is_client,
+    is_valid_admin_or_partner,
+    is_valid_user
 }

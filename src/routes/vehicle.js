@@ -1,8 +1,9 @@
 const { Router } = require("express")
 const route = Router()
 const vehicle_dao = require("../data/dao/vehicle.dao")
+const {is_admin,is_partner,is_client,is_valid_admin_or_partner} = require("../middlewares/auth")
 
-route.post("/", [], async function (req, res, next) {
+route.post("/", [is_valid_admin_or_partner], async function (req, res, next) {
     try {
         const vehicle = req.body
         const response = await vehicle_dao.create_vehicle(vehicle)
@@ -16,7 +17,7 @@ route.post("/", [], async function (req, res, next) {
     }
 })
 
-route.get("/getDataListOfVehiclesByClient", [], async function (req, res, next) {
+route.get("/getDataListOfVehiclesByClient", [is_partner], async function (req, res, next) {
     try {
         let {propietario} = req.body
         const response = await vehicle_dao.get__data_list_vehicles_by_client(propietario)

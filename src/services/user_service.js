@@ -28,6 +28,33 @@ const is_valid_partner = (token) => {
     return valid_user
 }
 
+const is_valid_admin_or_partner = (token) => {
+    let valid_user = false
+    let data = njwt_service.decode_token(token)
+    if (data.idrol == PARKING_ROLES.admin_role && data.idrol != PARKING_ROLES.partner_role) {
+        valid_user = true
+    }
+    if (data.idrol != PARKING_ROLES.admin_role && data.idrol == PARKING_ROLES.partner_role) {
+        valid_user = true
+    }
+    return valid_user
+}
+
+const is_valid_user = (token) => {
+    let valid_user = false
+    let data = njwt_service.decode_token(token)
+    if (data.idrol == PARKING_ROLES.admin_role && data.idrol != PARKING_ROLES.partner_role && data.idrol != PARKING_ROLES.client_role) {
+        valid_user = true
+    }
+    if (data.idrol != PARKING_ROLES.admin_role && data.idrol == PARKING_ROLES.partner_role && data.idrol != PARKING_ROLES.client_role) {
+        valid_user = true
+    }
+    if (data.idrol != PARKING_ROLES.admin_role && data.idrol != PARKING_ROLES.partner_role && data.idrol == PARKING_ROLES.client_role) {
+        valid_user = true
+    }
+    return valid_user
+}
+
 const is_valid_client = (token) => {
     let valid_user = false
     let data = njwt_service.decode_token(token)
@@ -42,5 +69,7 @@ module.exports = {
     login_user,
     is_valid_admin,
     is_valid_partner,
-    is_valid_client
+    is_valid_client,
+    is_valid_admin_or_partner,
+    is_valid_user
 }
